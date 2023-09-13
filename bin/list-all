@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# エンドポイントURLの設定
+ENDPOINT="https://api.github.com/repos/llvm/llvm-project/releases"
+
+curl -s $ENDPOINT | jq -r '.[].tag_name' | sed 's/llvmorg-//'
+
