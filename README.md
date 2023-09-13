@@ -19,7 +19,7 @@ clang plugin for [asdf version manager](https://github.com/asdf-vm/asdf)
 ## Install
 
 ```bash
-asdf plugin add clang https://github.com/asdf-community/asdf-clang.git
+asdf plugin add clang https://github.com/takehaya/asdf-clang.git
 ```
 
 ## Contributing
