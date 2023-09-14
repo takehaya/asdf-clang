@@ -24,26 +24,34 @@ check_pgp_sig() {
 download_clang() {
   local version=$1
   local download_path=$2
+	local prod_name=$3
   local platform=""
   local arch=""
 
+	echo "download start for $prod_name"
   platform=$(get_platform)
   arch=$(get_arch)
   clangkey_version=$(echo $version | sed 's/-//')
-  download_url="${ENDPOINT}/download/llvmorg-${version}/clang-${clangkey_version}.src.tar.xz"
-  echo $download_url
+  download_url="${REL_ENDPOINT}/download/llvmorg-${version}/${prod_name}-${clangkey_version}.src.tar.xz"
 
   http_code=$(curl -I -w '%{http_code}' -s -o /dev/null "$download_url")
   if [ "$http_code" -eq 404 ] || [ "$http_code" -eq 403 ]; then
     fail "URL: ${download_url} returned status ${http_code}"
   fi
 
-  curl -LJ "$download_url" -o "${download_path}/archive.tar.xz"
+  curl -LJ "$download_url" -o "${download_path}/${prod_name}_archive.tar.xz"
   if [ "unset" = "${ASDF_CLANG_SKIP_PGP_SIG:-unset}" ]; then
-    curl -LJ "${download_url}.sig" -o "${download_path}/archive.tar.xz.sig"
-	  curl -LJ $RELEASE_KEY -o /tmp/release-keys.asc
+		if [[ ! -e $RELEASE_KEY_FILE_PATH ]]; then
+    	curl -LJ $RELEASE_KEY -o $RELEASE_KEY_FILE_PATH
+		else
+				echo "File $RELEASE_KEY_FILE_PATH already exists. Skipping download."
+		fi
+
+    curl -LJ "${download_url}.sig" -o "${download_path}/${prod_name}_archive.tar.xz.sig"
+	  curl -LJ $RELEASE_KEY -o $RELEASE_KEY_FILE_PATH
     echo 'verifying gpg sig'
-    if ! check_pgp_sig "${download_path}/archive.tar.xz" "${download_path}/archive.tar.xz.sig" "/tmp/release-keys.asc"; then
+
+		if ! check_pgp_sig "${download_path}/${prod_name}_archive.tar.xz" "${download_path}/${prod_name}_archive.tar.xz.sig" $RELEASE_KEY_FILE_PATH; then
       fail "Authenticity of package archive can not be assured. Exiting."
     else
       msg "gpg sig verified"
@@ -53,4 +61,5 @@ download_clang() {
   fi
 }
 
-download_clang "$ASDF_INSTALL_VERSION" "$ASDF_DOWNLOAD_PATH"
+download_clang "$ASDF_INSTALL_VERSION" "$ASDF_DOWNLOAD_PATH" "clang"
+download_clang "$ASDF_INSTALL_VERSION" "$ASDF_DOWNLOAD_PATH" "clang-tools-extra"

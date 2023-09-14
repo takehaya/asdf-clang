@@ -3,6 +3,12 @@
 set -eu
 [ "${BASH_VERSINFO[0]}" -ge 3 ] && set -o pipefail
 
+RELEASE_KEY="https://releases.llvm.org/release-keys.asc"
+API_ENDPOINT="https://api.github.com/repos/llvm/llvm-project/releases"
+GH_REPO="https://github.com/llvm/llvm-project"
+REL_ENDPOINT="$GH_REPO/releases"
+RELEASE_KEY_FILE_PATH="/tmp/release-keys.asc"
+
 get_platform() {
   local silent=${1:-}
   local platform=""
@@ -51,6 +57,23 @@ fail() {
   exit 1
 }
 
-RELEASE_KEY="https://releases.llvm.org/release-keys.asc"
-API_ENDPOINT="https://api.github.com/repos/llvm/llvm-project/releases"
-ENDPOINT="https://github.com/llvm/llvm-project/releases"
+list_github_tags() {
+	git ls-remote --tags --refs "$GH_REPO" |
+		grep -o 'refs/tags/.*' | cut -d/ -f3- |
+		sed 's/^llvmorg-//'
+}
+
+list_all_versions() {
+	list_github_tags
+}
+
+download_release() {
+	local version filename url
+	version="$1"
+	filename="$2"
+
+	url="$GH_REPO/archive/llvmorg-${version}.tar.gz"
+
+	echo "Downloading LLVM release $version"
+	curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
+}

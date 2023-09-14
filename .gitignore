@@ -118,4 +118,4 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/powershell,macos,linux,windows,c++
 
 # userdef
-archive.tar.xz*
+*_archive.tar.xz*
