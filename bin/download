@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -eu
+[ "${BASH_VERSINFO[0]}" -ge 3 ] && set -o pipefail
+
+PLUGIN_DIR="$(dirname "${BASH_SOURCE[0]}")/.."
+
+# shellcheck source=/dev/null
+source "$PLUGIN_DIR/lib/helpers.sh"
+
+check_pgp_sig() {
+  local archive_file_name=$1
+  local authentic_sig_file=$2
+  local openkey_file=$3
+
+  if command -v gpg >/dev/null 2>&1; then
+    gpg --import "$openkey_file"
+    gpg --verify "$authentic_sig_file" \
+        "$archive_file_name"
+  else
+    fail "gpg is not available for use"
+  fi
+}
+
+download_clang() {
+  local version=$1
+  local download_path=$2
+  local platform=""
+  local arch=""
+
+  platform=$(get_platform)
+  arch=$(get_arch)
+  clangkey_version=$(echo $version | sed 's/-//')
+  download_url="${ENDPOINT}/download/llvmorg-${version}/clang-${clangkey_version}.src.tar.xz"
+  echo $download_url
+
+  http_code=$(curl -I -w '%{http_code}' -s -o /dev/null "$download_url")
+  if [ "$http_code" -eq 404 ] || [ "$http_code" -eq 403 ]; then
+    fail "URL: ${download_url} returned status ${http_code}"
+  fi
+
+  curl -LJ "$download_url" -o "${download_path}/archive.tar.xz"
+  if [ "unset" = "${ASDF_CLANG_SKIP_PGP_SIG:-unset}" ]; then
+    curl -LJ "${download_url}.sig" -o "${download_path}/archive.tar.xz.sig"
+	  curl -LJ $RELEASE_KEY -o /tmp/release-keys.asc
+    echo 'verifying gpg sig'
+    if ! check_pgp_sig "${download_path}/archive.tar.xz" "${download_path}/archive.tar.xz.sig" "/tmp/release-keys.asc"; then
+      fail "Authenticity of package archive can not be assured. Exiting."
+    else
+      msg "gpg sig verified"
+    fi
+  else
+    err "gpg sig skipped"
+  fi
+}
+
+download_clang "$ASDF_INSTALL_VERSION" "$ASDF_DOWNLOAD_PATH"

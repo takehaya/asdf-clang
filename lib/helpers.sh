@@ -51,4 +51,6 @@ fail() {
   exit 1
 }
 
-ENDPOINT="https://api.github.com/repos/llvm/llvm-project/releases"
+RELEASE_KEY="https://releases.llvm.org/release-keys.asc"
+API_ENDPOINT="https://api.github.com/repos/llvm/llvm-project/releases"
+ENDPOINT="https://github.com/llvm/llvm-project/releases"
